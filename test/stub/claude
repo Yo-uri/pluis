@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+// Stands in for `claude -p`: answers from PLUIS_STUB, filtered by the rule and file named in the prompt.
+import { appendFileSync, readFileSync } from "node:fs";
+
+const prompt = readFileSync(0, "utf8");
+const rule = prompt.match(/^Rule: (.+)$/m)[1];
+const path = prompt.match(/^File: (.+)$/m)[1];
+
+if (process.env.PLUIS_STUB_LOG) {
+  appendFileSync(process.env.PLUIS_STUB_LOG, JSON.stringify({ args: process.argv.slice(2), rule, path }) + "\n");
+}
+
+const findings = JSON.parse(process.env.PLUIS_STUB ?? "[]")
+  .filter((finding) => finding.rule === rule && finding.path === path)
+  .map(({ line, quote, message }) => ({ line, quote, message }));
+
+process.stdout.write(JSON.stringify({ type: "result", is_error: false, structured_output: { findings } }));

@@ -1,0 +1,26 @@
+{
+  "name": "pluis",
+  "version": "0.1.0",
+  "description": "Lints code against plain-language Markdown rules with Claude",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pluis": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "presets"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "tsc",
+    "test": "tsc --noEmit && node --test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2"
+  }
+}
