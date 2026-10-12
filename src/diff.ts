@@ -24,7 +24,8 @@ export async function changedLines(base: string, path: string): Promise<Set<numb
     return "all";
   }
 
-  const diff = await git("git", ["diff", "--unified=0", "--no-color", "--no-ext-diff", base, "--", path]);
+  const forkPoint = (await git("git", ["merge-base", base, "HEAD"])).stdout.trim();
+  const diff = await git("git", ["diff", "--unified=0", "--no-color", "--no-ext-diff", forkPoint, "--", path]);
 
   return parseChangedLines(diff.stdout);
 }

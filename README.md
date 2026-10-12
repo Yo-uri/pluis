@@ -22,7 +22,7 @@ Node.js 22.18 or later.
 npx pluis [--diff <base>] [--format text|json] <files...>
 ```
 
-`--diff <base>` keeps only findings on lines changed since `<base>`, such as `--diff origin/main`. Untracked files count as wholly changed. Without it pluis reports on whole files.
+`--diff <base>` keeps only findings on lines changed since the current branch forked from `<base>`, such as `--diff origin/main`, including uncommitted changes. Untracked files count as wholly changed. Without it pluis reports on whole files.
 
 `--format json` prints an array of `{ path, line, severity, rule, message, quote }` for programs. The default prints `path:line severity rule message`, one line per finding.
 

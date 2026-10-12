@@ -4,7 +4,7 @@ import { relative } from "node:path";
 import { parseArgs } from "node:util";
 import { isCited } from "./citation.ts";
 import { check } from "./claude.ts";
-import { loadConfig, settingsFor, type Severity } from "./config.ts";
+import { loadConfig, settingsFor, type Config, type Severity } from "./config.ts";
 import { changedLines } from "./diff.ts";
 
 type Finding = {
@@ -19,7 +19,7 @@ type Finding = {
 const usage = "Usage: pluis [--diff <base>] [--format text|json] <files...>";
 const concurrency = 4;
 
-async function lintFile(path: string, config: Awaited<ReturnType<typeof loadConfig>>, base?: string) {
+async function tasksFor(path: string, config: Config, base?: string): Promise<(() => Promise<Finding[]>)[]> {
   const { model, rules } = settingsFor(config, path);
   if (rules.length === 0) {
     return [];
@@ -29,26 +29,30 @@ async function lintFile(path: string, config: Awaited<ReturnType<typeof loadConf
   const lines = source.split("\n");
   const changed = base === undefined ? "all" : await changedLines(base, path);
 
-  const tasks = rules.map(({ rule, severity }) => async () => {
+  return rules.map(({ rule, severity }) => async () => {
     const raw = await check(rule, path, source, model);
 
     return raw
       .filter((finding) => isCited(lines, finding))
       .filter((finding) => changed === "all" || changed.has(finding.line))
-      .map((finding): Finding => ({ path, line: finding.line, severity, rule: rule.id, message: finding.message, quote: finding.quote }));
+      .map(({ line, quote, message }): Finding => ({ path, line, severity, rule: rule.id, message, quote }));
   });
-
-  return tasks;
 }
 
 async function runPool<T>(tasks: (() => Promise<T>)[], size: number): Promise<T[]> {
   const results: T[] = new Array(tasks.length);
   let next = 0;
+  let failed = false;
 
   async function worker() {
-    while (next < tasks.length) {
+    while (next < tasks.length && !failed) {
       const index = next++;
-      results[index] = await tasks[index]();
+      try {
+        results[index] = await tasks[index]();
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
     }
   }
 
@@ -82,7 +86,7 @@ async function main(argv: string[]): Promise<number> {
 
   const config = await loadConfig(process.cwd());
   const paths = positionals.map((file) => relative(process.cwd(), file).split("\\").join("/"));
-  const tasks = (await Promise.all(paths.map((path) => lintFile(path, config, values.diff)))).flat();
+  const tasks = (await Promise.all(paths.map((path) => tasksFor(path, config, values.diff)))).flat();
   const findings = (await runPool(tasks, concurrency))
     .flat()
     .sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line || a.rule.localeCompare(b.rule));

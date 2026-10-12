@@ -27,15 +27,17 @@ const severities = ["error", "warn", "info", "off"];
 const presetsDir = fileURLToPath(new URL("../presets/", import.meta.url));
 
 export async function loadConfig(dir: string): Promise<Config> {
-  const entries: unknown = JSON.parse(await readFile(join(dir, "pluis.json"), "utf8"));
-  if (!Array.isArray(entries)) {
+  const parsed: unknown = JSON.parse(await readFile(join(dir, "pluis.json"), "utf8"));
+  if (!Array.isArray(parsed)) {
     throw new Error("pluis.json must be an array of config entries");
   }
+
+  const entries: Entry[] = parsed;
 
   const rules = new Map<string, Rule>();
   const presetRuleIds = new Map<string, string[]>();
 
-  for (const entry of entries as Entry[]) {
+  for (const entry of entries) {
     for (const preset of entry.extends ?? []) {
       if (presetRuleIds.has(preset)) {
         continue;
@@ -47,7 +49,7 @@ export async function loadConfig(dir: string): Promise<Config> {
     }
   }
 
-  for (const entry of entries as Entry[]) {
+  for (const entry of entries) {
     for (const [id, severity] of Object.entries(entry.rules ?? {})) {
       if (!rules.has(id)) {
         throw new Error(`Unknown rule "${id}" in pluis.json; extend the preset or directory that defines it`);

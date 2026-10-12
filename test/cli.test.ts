@@ -104,6 +104,24 @@ test("--diff keeps only findings on lines changed since the base", async () => {
   assert.equal(result.code, 0);
 });
 
+test("--diff ignores lines the base branch changed after the fork", async () => {
+  const dir = await project();
+  const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: dir, stdio: "pipe" });
+  git("init", "-q", "-b", "main");
+  git("add", ".");
+  git("commit", "-q", "-m", "app");
+  git("switch", "-q", "-c", "feature");
+  git("switch", "-q", "main");
+  await writeFile(join(dir, "app.ts"), appSource.replace("86400000", "3600000"));
+  git("commit", "-q", "-am", "main moves");
+  git("switch", "-q", "feature");
+  await writeFile(join(dir, "app.ts"), appSource.replace("TODO: later", "TODO: now"));
+
+  const result = pluis(dir, ["--diff", "main", "app.ts"], [magic, todo]);
+
+  assert.equal(result.stdout, "app.ts:3 warn no-todo Resolve it.\n");
+});
+
 test("--diff treats an untracked file as wholly changed", async () => {
   const dir = await project();
   execFileSync("git", ["init", "-q"], { cwd: dir });

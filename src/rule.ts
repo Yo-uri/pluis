@@ -57,12 +57,15 @@ function parseFrontmatter(yaml: string): Record<string, string[]> {
 
     const [, key, value] = field;
     const flowList = value.match(/^\[(.*)\]$/);
-    listKey = value === "" ? key : undefined;
+    listKey = undefined;
 
     if (flowList) {
       fields[key] = flowList[1].split(",").map(unquote).filter(Boolean);
+    } else if (value === "") {
+      fields[key] = [];
+      listKey = key;
     } else {
-      fields[key] = value === "" ? [] : [unquote(value)];
+      fields[key] = [unquote(value)];
     }
   }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stands in for `claude -p`: answers from PLUIS_STUB, filtered by the rule and file named in the prompt.
+// Stands in for `claude -p`; mirrors its JSON result envelope.
 import { appendFileSync, readFileSync } from "node:fs";
 
 const prompt = readFileSync(0, "utf8");
